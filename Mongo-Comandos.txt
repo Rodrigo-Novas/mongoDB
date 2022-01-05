@@ -1,0 +1,260 @@
+Iniciar daemon:
+en un cmd colocar mongod
+
+convenciones mongo:
+
+Bases de datos: consisten en el propósito (Word en singular) y terminan con "db", todas en minúsculas: imagedb, resumedb, memberdb, etc.
+Colecciones: plural en minúsculas: imágenes, currículums,
+Campos de documento: lowerCamelCase, por ejemplo memberFirstName, fileName, etc.
+Conectarse a mongo.
+
+CMD: colocamos mongo
+
+--crear base de datos
+USE nombre_base
+
+--mostrar base de datos
+show dbs
+
+--mostrar collecciones
+show collections
+--crear tabla
+db.createCollection("automoviles")
+ó
+db.nombreColeccion.insert({}) # creamos tabla al insertar datos
+
+--CRUD
+
+Eliminar:
+db.coleccion.deleteMany({}) # se elimina todo y sino dentro del json le coloco el que quiero eliminar
+Insertar:
+ nombreBDD.nombreColeccion.funcionCRUD
+insertMany:
+ db.nombreColeccion.insertMany([{},{}])
+ db.mi_primer_base.insertMany([{"pelicula":"El libro de la selva", "anio":1987},{"pelicula":"jorge el furioso"}])
+
+Find: nos filtra
+ db.mi_primer_base.find({"pelicula":"El libro de la selva"})
+ db.mi_primer_base.find({"pelicula":"jorge el furioso"})
+ Output: { "_id" : ObjectId("619d39b589160c86362109d3"), "pelicula" : "El libro de la selva", "anio" : 1987 }
+tambien podemos sacarle el ObjectId o cualquier otro parametro haciendo:
+ db.mi_primer_base.find({"pelicula":"jorge el furioso"}, {"_id":0})
+ Output: { "pelicula" : "El libro de la selva", "anio" : 1987 }
+
+db.mi_primer_base.find().pretty() # un find mas lindo
+
+Update y Replace (update tambien puede crear nuevos campos):
+
+replaceOne:
+db.mi_primer_base.replaceOne({"pelicula":"jorge el furioso"}, {"Pelicula": "Star Wars", "anio":1978})
+si hago un find el output es:
+ { "_id" : ObjectId("619d39b589160c86362109d4"), "Pelicula" : "Star Wars", "anio" : 1978 }
+
+Si agrego el parametro upsert si no encuentra el documento va a insertarlo
+ db.mi_primer_base.replaceOne({"pelicula":"jorge el furioso"}, {"Pelicula": "Star Wars", "anio":1978}, {upsert:true})
+
+Update:
+En el segundo json no hace falta ponerle comillas a los campos porque entiende que ya existe
+db.mi_primer_base.update({"pelicula":"El libro de la selva"},{Pelicula:"El libro de la selva", "anio":1950})
+Tambien se puede colocar upsert
+
+En el caso de que queramos hacer un update de multiples tablas podemos colocar el parametro multi:true
+Pero para usarlo tenemos que colocar una palabra reservada llamada $set
+db.mi_primer_base.update({"Pelicula":"El libro de la selva"},{$set:{Pelicula:"El libro de la selva", "anio":1950}},{multi:true})
+
+--CURSOR
+Sirve para iterar y lo usamos a partir del find
+db.mi_primer_base.find({"Pelicula":"Star Wars"})[0] # Nos traera el primer documento de la coleccion
+db.mi_primer_base.find({"Pelicula":"Star Wars"}).count() # Contara la cantidad de documentos
+db.mi_primer_base.find({"Pelicula":"Star Wars"}).limit(1) # Es como un top podemos especificarle cuantos documentos queremos que traiga
+
+--PROYECCION
+La proyeccion siempre debe ser estar aplicada en el ultimo argumento, es lo que habiamos colocado al principio para especificar que elemntos queremos que traiga. Es el equivalente al select sin asterisco. El nombre del campo puede ir sin comillas. le especificamos que campos queremos o no queremos
+
+>db.mi_primer_base.find({"Pelicula":"Star Wars"},{Pelicula:0})
+{ "_id" : ObjectId("619d39b589160c86362109d4"), "anio" : 1978 }
+{ "_id" : ObjectId("619d3d5d4ae44dd10ecd9318"), "anio" : 1978 }
+
+> db.mi_primer_base.find({"Pelicula":"Star Wars"},{Pelicula:1})
+{ "_id" : ObjectId("619d39b589160c86362109d4"), "Pelicula" : "Star Wars" }
+{ "_id" : ObjectId("619d3d5d4ae44dd10ecd9318"), "Pelicula" : "Star Wars" }
+
+--DOCUMENTOS INCRUSTRADOS EN MATRICES:
+
+Es insertar documentos dentro de otro documento
+ db.mi_primer_base.insertMany([{"item":"journal", "stock":[{"warehouse":"A","qty":10},{"warehouse":"B", "qty":3},{"warehouse":"C","qty":5}]}])
+{ "_id" : ObjectId("619d44f789160c86362109d5"), "item" : "journal", "stock" : [ { "warehouse" : "A", "qty" : 10 }, { "warehouse" : "B", "qty" : 3 }, { "warehouse" : "C", "qty" : 5 } ] }
+
+
+--DATOS ESTRUCTURADOS o DATOS RELACIONALES:
+Los datos estructurados son datos que se ajustan a un modelo de datos predefinidos. Los datos estructurados se almacenan y recuperar facilmente en una base de datos relacional
+{
+"name":"notebook",
+"qty":50,
+"rating":[{"score":8},{"score":9}],
+"size":{"height":11, "width":8.5, "unit":"inches"},
+"status":"A",
+"tags":["college-ruled","perforated"]
+}
+
+--ELIMINAR COLECCION
+use test
+db.nombre_coleccion.drop()
+
+--ELIMINAR BDD
+use test
+db.dropDatabase()
+
+--SIN SCHEMA FIJO
+No hay tipo de datos para los campos ni tienen un schema de cantidad de characteres
+ db.coleccion.insertOne({"Pelicula":"Hawai", "anio":2005}
+ db.coleccion.insertOne({"Pelicula":"Hawai", "anio":"asdadsads"}
+
+
+--TIPOS DE DATOS EN MONGO:
+double, string, object, array, binData, objectId, bool, date, null, regex, javascript, int (32 bit integer), timestamp, long(64 bit integer), decimal (decimal 128), minKey, maxKey
+Filtrar por tipo de dato
+ db.mi_primer_base.find({"anio":{$type:"double"}})
+ db.mi_primer_base.find({"anio":{$type:"string"}})
+
+--RELACIONES:
+Hay dos formas por referencia o incrustrada. La forma incrustrada tiene la ventaja de tener toda la informacion en un solo documento pero tiene la desventaja de que si existen muchos documentos incrustrados en uno computacionalmente se volveria muy lento y dificil de procesar. En cambio por referencia a pesar de no tener toda la informacion del documento en uno solo se puede consultar en cuento se requiera debido a que existe un campo referente a las relaciones existentes con otros documentos.
+
+UNO A UNO:
+
+uno a uno incrustrado:
+Se puede hacer relacion uno a uno, uno a muchos y muchos a muchos. Se pueden modelar de forma integrada o mediante el enfoque por referencia
+
+Relacion uno a uno de forma incrustado:
+Incrustar datos conectados en un solo documento puede reducir el numero de opraciones de lectura necesarias para obtener datos. En general, debe estructurar su esquema para que su aplicacion reciba toda la informacion requerida en una sola operacion delectura.
+
+ db.patron.insertOne({"_id":"Joe", "name":"Joe Bookreader"})
+ db.address.insertOne({"patron_id":"Joe", "street":"123 fake street", "city":"Faketon","state":"MA", "zip":"12345"})
+ var Auxiliar_id = db.patron.findOne({"name":"Joe Bookreader"})._id #asigno variable
+db.address.findOne({patron_id:Auxiliar_id}).street #accedo al id mediante la auxiliar
+
+Al ser un proceso largo se puede guardar en una funcion para hacerlo mas rapido y facil incrustamos el documento en uno solo en lugar de tener dos tablas hacemos una tabla maestra que va a contener las dos:
+db.patron.update({_id:"Joe"},{address:{"name":"Joe Bookreader","street":"123 fake street", "city":"Faketon","state":"MA", "zip":"12345"}})
+WriteResult({ "nMatched" : 1, "nUpserted" : 0, "nModified" : 1 })
+db.patron.find().pretty()
+{
+        "_id" : "Joe",
+        "address" : {
+                "name" : "Joe Bookreader",
+                "street" : "123 fake street",
+                "city" : "Faketon",
+                "state" : "MA",
+                "zip" : "12345"
+}
+
+uno a uno por referencia:
+Las referencias son muy parecidas a las tablas relacionales en sql, ya que se hace referencia mediante un campo id este nos servira para poder crear relacion con un documento o varios. Usamos el object id como referencia
+
+Insertamos plaza
+db.plazas.insertOne({"name":"Plaza1", "precio_pantalones":{"nombre_tienda":"tienda ropa 1", "precio_bajo":400, "prclsecio_alto":1200}})
+
+Insertamos pantalones con el object id de la plaza
+db.pantalones.insertOne({"nombre_tienda":"tienda ropa 1", "precio_bajo":400, "prclsecio_alto":1200,"id_plaza" : ObjectId("619e3d4b26f7f4a70c4396f5")})
+
+
+
+UNO A MUCHOS:
+
+uno a muchos por referencia:
+En lugar de tener solo una referencia tendriamos una lista
+
+db.plazas.insertOne({"nombre_plaza":"Plaza sol", "precio_pantalones":[{"nombre_tienda": "Ropa niños", "precio_bajo":200, "precio_alto":600},{"nombre_tienda": "Ropa caballeros", "precio_bajo":100, "precio_alto":400}]})
+
+db.pantalones.insertMany([{"nombre_tienda": "Ropa niños", "precio_bajo":200, "precio_alto":600, "id_plaza":ObjectId("619e3fad26f7f4a70c4396f7")},{"nombre_tienda": "Ropa caballeros", "precio_bajo":100, "precio_alto":400, "id_plaza":ObjectId("619e3fad26f7f4a70c4396f7")}])
+
+
+MUCHOS A MUCHOS:
+
+muchos a muchos incrustrado:
+La relacion muchos a muchos son de forma bidireccional, muchos documentos se relaciones con otros y estos otros se relacionan con los anteriores. Al igual que los anteriores se inserta el documento dentro del otro
+
+Muchos a muchos por referencia:
+Se utiliza el object id para hacer la referencia
+
+db.tienda.insertMany([{"_id":123, "tienda":"Tienda 1", "calle":5665, "cp":1985, "empleados":[{"nombre":"Juan", "edad":25}, {"nombre":"Pedro", "edad":32}]}, {"_id":456, "tienda":"Tienda 2", "calle":65876, "cp":56789, "empleados":[{"nombre":"Lucas", "edad":35}, {"nombre":"Mauricio", "edad":45}]}])
+
+
+A cada uno le coloco el id tienda al que pertenece
+db.tienda.insertMany([{"nombre":"Juan", "edad":25, "id_tienda":123}, {"nombre":"Pedro", "edad":32,"id_tienda":123},{"nombre":"Lucas", "edad":35,"id_tienda":456}, {"nombre":"Mauricio", "edad":45,"id_tienda":456}])
+
+
+JAVASCRIPT CON MONGO:
+
+Declarar variables:
+// array
+var marcas = ["Rolls Royce","Ford","Audi","Toyota","Renault","Tesla","Nissan","Fiat","Ferrari","Jeep"]
+
+// devuelve un numero random y lo multiplica por la cantidad de items en el array
+_rand() * marcas.length
+
+Math.floor(_rand() * marcas.length)
+
+
+// obtener marca al azar
+
+marcas[Math.floor(_rand()*marcas.length)]
+
+// crear array colores
+var colores = ["Rojo","Verde","Blanco","Azul","Amarillo", "Perla", "Negro", "Violeta", "Gris"]
+
+// numero random entre 2000 2022
+Math.floor(_rand() * (2000 - 2022 + 1) + 2000)
+
+
+// insertar automoviles
+
+db.automoviles.insert({marca:"Rolls Royce",color:"Blanco",patente:"CE3T",año:"2019",kilometros:20258})
+db.automoviles.find().pretty()
+
+// insertar 100 automoviles
+for (let i=0; i<100; i++){ db.automoviles.insert({ marca : marcas[ Math.floor(_rand() * marcas.length) ], color : colores[Math.floor(_rand() * colores.length)], patente : ObjectId().toString().toUpperCase().substring(12,19), año : 2000 + Math.floor(_rand()*22) , kilometros : Math.floor(_rand()*200000), }) }
+// ordenar por año
+db.automoviles.find({"marca":"ford"}).sort({"año":1}
+
+//CURSORES
+//guardar en un cursor
+En bases de datos, un cursor en una estructura de control, que nos permite manipular y acceder datos de manera ordenada y continuada, a través de un script, mediante el cual definimos y desplegamos datos. Los cursores facilitan las operaciones características de una base de datos, tales como lectura, adicional, actualización y eliminación de registros, podemos establecer un claro símil con las tareas de iteración en un lenguaje de programación convencional. 
+Cursores en MongoDB:
+Es importante aclarar que son simple y llanamente métodos de Javascript para modificar las respuestas de nuestras consultas usando directamente la API nativa de MongoDB.
+var autosFord = db.automoviles.find({marca:"Ford"}, {_id:0, patente:1, año:1, color:1}).sort({"año":-1})
+//lo recorro
+for(let auto in autosFord){print("Soy un auto")}
+//TIP
+// para poder obtener que tipos de funciones puedo tener en lo cursores pongo nombreCursor. y tabulo dos veces
+
+// para obtener los autos rojos con año mayor igual y colocarlo en un cursor
+var rojos = db.automoviles.find({color:"Rojo", año: { $gte:2010 }})
+
+//para crear una coleccion que tenga la info del cursor hago
+
+rojos.forEach((auto) =>{db.autosRojos.insert(auto)})
+
+//si quiero eliminar algun campo
+db.autosRojos.updateMany({}, {$unset:{color:""}})
+
+//copiar los autos de menos de 10000 km a otra coleccion
+
+ db.automoviles.find({kilometros: { $lt:100000 }}).forEach((a)=>db.autosKm.insert(a))
+
+//agregar arreglo a una colleccion
+db.autosRojos.updateMany({}, { $set : {arreglo: [Math.floor(_rand()*100),Math.floor(_rand()*100),Math.floor(_rand()*100),Math.floor(_rand()*100),Math.floor(_rand()*100)] }})
+//ver contenido filtrado
+db.autosRojos.find({arreglo:{$all:[16,76,24,37,70]}})
+//ver tamaño
+db.autosRojos.find({arreglo:{$size:5}})
+
+//insertar informacion en un arreglo
+db.autosRojos.find().forEach( (auto)=>{ auto.calificacion ={}; auto.calificacion.confort = Math.floor(_rand()*10); auto.calificacion.seguridad = Math.floor(_rand()*10); db.autosRojos.save(auto); })
+
+//para poder acceder a un campo de ese arreglo que tenga confort de tipo 2 
+db.autosRojos.find({"calificacion.confort":2})
+
+//SUMATORIAS
+// obtener sumatorio de confort
+autos.forEach((auto)=>{cantidad += auto.calificacion.confort}); print(cantidad)
+//ESTA MAP REDUCE PERO ACTUALMENTE NO SE USA Y SE REMPLAZO POR LA API AGREGGATE
