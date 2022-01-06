@@ -182,6 +182,16 @@ db.tienda.insertMany([{"_id":123, "tienda":"Tienda 1", "calle":5665, "cp":1985, 
 A cada uno le coloco el id tienda al que pertenece
 db.tienda.insertMany([{"nombre":"Juan", "edad":25, "id_tienda":123}, {"nombre":"Pedro", "edad":32,"id_tienda":123},{"nombre":"Lucas", "edad":35,"id_tienda":456}, {"nombre":"Mauricio", "edad":45,"id_tienda":456}])
 
+// EDUCACION IT:
+
+CAMBIAR NOMBRE A COLECCION:
+
+db.collection.renameCollection("movies")
+
+CARGAR ARCHIVO JS A MONGO:
+
+load("C:/Users/novasrodrigo/Desktop/Mongo-Comandos/peliculas.js")
+
 
 JAVASCRIPT CON MONGO:
 
@@ -257,4 +267,61 @@ db.autosRojos.find({"calificacion.confort":2})
 //SUMATORIAS
 // obtener sumatorio de confort
 autos.forEach((auto)=>{cantidad += auto.calificacion.confort}); print(cantidad)
+
+
+//GROUP BY (agreggate)
 //ESTA MAP REDUCE PERO ACTUALMENTE NO SE USA Y SE REMPLAZO POR LA API AGREGGATE
+
+db.movies.aggregate({$match:{director:"Sergio Leone"}}).pretty()
+
+db.movies.aggregate({$match:{year:2013}},{$match:{countries:"Spain"}}).pretty()
+
+// que tengan mas de dos paises
+
+db.movies.aggregate({$match:{countries:{$size:2}}}).pretty()
+
+
+// agrupar por paises que no tienen coproduccion
+
+db.movies.aggregate({$match:{countries:{$size:1}}},{$group:{_id:"$countries"}}).pretty()
+
+// agrupar por paises mas suma de cantidad que se repita
+db.movies.aggregate({$match:{countries:{$size:1}}}, {$group:{_id:"$countries", cantidad:{$sum:1}}}).pretty()
+
+//obtener años que se repitan
+
+db.movies.aggregate({$group:{_id:"$year", cantidad:{$sum:1}}}).pretty()
+
+//Agrupar por años menores a 2013
+db.movies.aggregate({$match:{year:{$lt:2013}}},{$group:{_id:"$year"}}).pretty()
+
+// cantidad de premios por pelicula
+db.movies.aggregate({$group:{_id:"$awards.wins", cantidad:{$sum:1}}}).pretty()
+
+// al tener pipes puedo tomar campos de los pipes anteriores, en este ejemplo puedo usar premios porque lo genere anteriormente
+db.movies.aggregate({$match:{countries:{$size:1}}},{$group:{_id:"$countries", premios : {$avg : "$awards.wins"}}}, {$match:{premios:{$gt:0}}})
+
+// agrupado con sumatoria de los pesos ordenado -1
+
+db.movies.aggregate({$match:{countries:{$size:1}}},{$group:{_id:"$countries", premios : {$sum:"$awards.wins"}}},{$sort:{premios:-1}})
+
+//ordenar por dos campos
+db.movies.aggregate({$match:{countries:{$size:1}}},{$group:{_id:{pais:"$countries", año:"$year"}, premios : {$sum:"$awards.wins"}}},{$sort:{premios:-1}})
+
+
+//solo tomar el primer elemento usando $first
+
+db.movies.aggregate({$match:{countries:{$size:1}}},{$group:{_id:{pais:{$first:"$countries"}, año:"$year"}, premios : {$sum:"$awards.wins"}}},{$sort:{premios:-1}})
+
+//sin nulos uso $ne:null
+
+db.movies.aggregate({$match:{"imdb.rating":{$ne:null}}},{$match:{countries:{$size:1}}},{$group:{_id:"$countries", imdb:{$avg:"$imdb.rating"}}})
+
+// sacar el rating maximo con $max
+
+db.movies.aggregate({$match:{"imdb.rating":{$ne:null}}},{$match:{countries:{$size:1}}},{$group:{_id:"$countries", imdb:{$avg:"$imdb.rating"},maxrating:{$max:"$imdb.rating"}, peliculas:{$sum:1}}},{$sort:{imdb:-1}})
+
+
+// sacar el rating minimo con $min
+
+db.movies.aggregate({$match:{"imdb.rating":{$ne:null}}},{$match:{countries:{$size:1}}},{$group:{_id:"$countries", imdb:{$avg:"$imdb.rating"},maxrating:{$min:"$imdb.rating"}, peliculas:{$sum:1}}},{$sort:{imdb:-1}})
